@@ -16,6 +16,16 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": ["https://evatr.bff-online.de/*"]
+      },
+      "fs": {
+        "readFile": true,
+        "writeFile": true,
+        "scope": ["**"]
       }
     },
     "bundle": {

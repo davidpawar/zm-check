@@ -8,49 +8,27 @@
   <title>ZM TS Test</title>
   <script type="module" src="/src/main.ts" defer></script>
   <style>
-    .logo.vite:hover {
-      filter: drop-shadow(0 0 2em #747bff);
-    }
 
-    .logo.typescript:hover {
-      filter: drop-shadow(0 0 2em #2d79c7);
-    }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>Welcome to Tauri!</h1>
 
-    <div class="row">
-      <a href="https://vitejs.dev" target="_blank">
-        <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/src/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://www.typescriptlang.org/docs" target="_blank">
-        <img src="/src/assets/typescript.svg" class="logo typescript" alt="typescript logo" />
-      </a>
-    </div>
+  <div class="ts-header">
+    <img src="src/assets/trusted-logo.png" class="ts-header-logo" />
+  </div>
 
-    <p>Click on the Tauri logo to learn more about the framework</p>
+  <h1>ZM-Check - USt-Prüfer</h1>
 
-    <div class="row">
-      <div>
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button id="greet-button" type="button">Greet</button>
-      </div>
-    </div>
+  <label class="ts-zm-input-label" for="file-input">Liste analysieren.</label>
+  <input class="ts-zm-input" type="file" id="file-input">
 
-    <p id="greet-msg"></p>
 
-    <br />
-
-    <input type="file" id="file-input">
-
+  <div class="ts-list-with-errors">
 
   </div>
+
+
 </body>
 
 </html>

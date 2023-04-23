@@ -30,8 +30,7 @@
 
 h1 {
   text-align: center;
-  margin-top: 10vh;
-  ;
+  margin-top: 50px;
 }
 
 .ts-zm-input-label {
@@ -46,18 +45,46 @@ h1 {
   font-family: inherit;
   font-size: 1.75rem;
   font-weight: 500;
-  height: 25vh;
+  height: 10vh;
   justify-content: center;
-  margin-top: 25vh;
   padding: 0.6rem 1.2rem;
   transition: border-color 0.25s;
-  width: 100%;
+  width: 80%;
+  margin: 100px auto 0;
 }
 
 .ts-zm-input {
   display: none;
 }
 
-.ts-zm-entry {
-  margin: 20px 0;
+.ts-list-with-errors {
+  padding: 50px 0;
+}
+
+.ts-list-with-errors-title {
+  font-weight: bold;
+  text-align: center;
+  font-size: 1.5rem;
+  ;
+}
+
+.ts-list-with-errors-table,
+.ts-list-with-errors-table th,
+.ts-list-with-errors-table td {
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+.ts-list-with-errors-table {
+  background: #fff;
+  margin: 20px auto;
+  width: 80%;
+}
+
+.ts-list-with-errors-table td {
+  padding: 10px
+}
+
+.ts-hidden {
+  display: none;
 }

@@ -79,7 +79,13 @@ window.addEventListener("DOMContentLoaded", async () => {
         // Goal 2: Update the given excel file and add a new column and
         responseOfPromises.forEach((singleResult) => {
           // We want to render the response of the API into the view. Therefore we need a node where to render into.
-          const renderTarget = document.querySelector(".ts-list-with-errors");
+          const renderTarget = document.querySelector(
+            ".ts-list-with-errors-table"
+          );
+
+          const tableWarpperElement = document.querySelector(
+            ".ts-list-with-errors"
+          );
 
           for (let i = 0; i < sheetAsJSON.length; i++) {
             // Run through the sheet and when we find the current singleResult then we can render it in the view and add a column in the row.
@@ -88,20 +94,28 @@ window.addEventListener("DOMContentLoaded", async () => {
                 sheetAsJSON[i]["USt-IdNr."] ===
               singleResult.ustId
             ) {
+              if (i === 0) {
+                tableWarpperElement?.classList.remove("ts-hidden");
+              }
+
               // We only need the error cases in the view.
               if (singleResult.code !== "200") {
-                const entry = document.createElement("div");
-                const entryText = document.createTextNode(
-                  sheetAsJSON[i]["Zeilenbeschriftungen"] +
-                    sheetAsJSON[i]["USt-IdNr."] +
-                    " ---- " +
-                    singleResult.resultMessage
-                );
+                const htmlElementString = `
+                <tr>
+                  <td>${
+                    sheetAsJSON[i]["Zeilenbeschriftungen"] +
+                    sheetAsJSON[i]["USt-IdNr."]
+                  }</td>
+                  <td>${singleResult.resultMessage}
+                  </td>
+                </tr>`;
 
-                entry.classList.add("ts-zm-entry");
-                entry.appendChild(entryText);
+                const template = document.createElement("template");
+                template.innerHTML = htmlElementString;
 
-                renderTarget?.appendChild(entry);
+                if (template.content.firstElementChild) {
+                  renderTarget?.appendChild(template.content.firstElementChild);
+                }
               }
 
               // Update the row with a new column.
@@ -154,7 +168,6 @@ async function checkUstId(ustId: string): Promise<Record<string, string>> {
         { responseType: ResponseType.Text }
       )
       .then((data: any) => {
-        console.log("reqFinish", ustId);
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(data.data, "text/xml");
 
@@ -164,6 +177,8 @@ async function checkUstId(ustId: string): Promise<Record<string, string>> {
 
         let resultMessage: string = "";
 
+        console.log(code);
+
         if (code === "200") {
           resultMessage = "Die angefragte USt-IdNr. ist gültig.";
         }
@@ -172,10 +187,17 @@ async function checkUstId(ustId: string): Promise<Record<string, string>> {
           resultMessage = "Die angefragte USt-IdNr. ist ungültig.";
         }
 
-        console.log(code);
-        if (code === "204") {
+        if (code === "202") {
           resultMessage =
-            "Die angefragte USt-IdNr. ist ungültig. Sie war im Zeitraum von ... bis ... gültig (siehe Feld 'Gueltig_ab' und 'Gueltig_bis').";
+            "Die angefragte USt-IdNr. ist ungültig. Sie ist nicht in der Unternehmerdatei des betreffenden EU-Mitgliedstaates registriert.";
+        }
+
+        if (code === "204") {
+          resultMessage = `Die angefragte USt-IdNr. ist ungültig. Sie war im Zeitraum von ${groupedValues[23].textContent} bis ${groupedValues[25].textContent} gültig.`;
+        }
+
+        if (code === "205") {
+          resultMessage = `Ihre Anfrage kann derzeit durch den angefragten EU-Mitgliedstaat oder aus anderen Gründen nicht beantwortet werden. Bitte versuchen Sie es später noch einmal. Bei wiederholten Problemen wenden Sie sich bitte an das Bundeszentralamt für Steuern - Dienstsitz Saarlouis.`;
         }
 
         if (code === "217") {

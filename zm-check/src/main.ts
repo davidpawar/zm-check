@@ -3,6 +3,7 @@ import { writeBinaryFile } from "@tauri-apps/api/fs";
 import * as XLSX from "xlsx";
 import { Client, getClient, ResponseType } from "@tauri-apps/api/http";
 import { desktopDir } from "@tauri-apps/api/path";
+import { getErrorMessageByErrorCode } from "./error-handler/error-handler";
 
 let client: Client;
 
@@ -58,7 +59,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       const listOfUstChunks = [];
 
       // Set the size of the chunkList aka. how many parallel request are made.
-      const chunkSize = 5;
+      const chunkSize = 8;
 
       // Create the chunks.
       for (let i = 0; i < allUstIds.length; i += chunkSize) {
@@ -106,7 +107,7 @@ window.addEventListener("DOMContentLoaded", async () => {
                     sheetAsJSON[i]["Zeilenbeschriftungen"] +
                     sheetAsJSON[i]["USt-IdNr."]
                   }</td>
-                  <td>${singleResult.resultMessage}
+                  <td>${singleResult.errorMessage}
                   </td>
                 </tr>`;
 
@@ -120,7 +121,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
               // Update the row with a new column.
               Object.assign(sheetAsJSON[i], {
-                Gultigkeit: singleResult.resultMessage,
+                Gultigkeit: singleResult.errorMessage,
               });
               break;
             }
@@ -162,12 +163,14 @@ window.addEventListener("DOMContentLoaded", async () => {
  */
 async function checkUstId(ustId: string): Promise<Record<string, string>> {
   return new Promise((resolve) => {
+    console.log("make call for: " + ustId);
     client
       .get(
         `https://evatr.bff-online.de/evatrRPC?UstId_1=DE328147354&UstId_2=${ustId}&Firmenname=&Ort=&PLZ=&Strasse=`,
         { responseType: ResponseType.Text }
       )
       .then((data: any) => {
+        console.log("response for: " + ustId);
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(data.data, "text/xml");
 
@@ -175,40 +178,25 @@ async function checkUstId(ustId: string): Promise<Record<string, string>> {
 
         const code = groupedValues[3].textContent as string;
 
-        let resultMessage: string = "";
+        const validFrom = groupedValues[23].textContent;
+        const validTo = groupedValues[25].textContent;
 
-        console.log(code);
+        let errorMessage: string;
 
-        if (code === "200") {
-          resultMessage = "Die angefragte USt-IdNr. ist gültig.";
-        }
-
-        if (code === "201") {
-          resultMessage = "Die angefragte USt-IdNr. ist ungültig.";
-        }
-
-        if (code === "202") {
-          resultMessage =
-            "Die angefragte USt-IdNr. ist ungültig. Sie ist nicht in der Unternehmerdatei des betreffenden EU-Mitgliedstaates registriert.";
-        }
-
-        if (code === "204") {
-          resultMessage = `Die angefragte USt-IdNr. ist ungültig. Sie war im Zeitraum von ${groupedValues[23].textContent} bis ${groupedValues[25].textContent} gültig.`;
-        }
-
-        if (code === "205") {
-          resultMessage = `Ihre Anfrage kann derzeit durch den angefragten EU-Mitgliedstaat oder aus anderen Gründen nicht beantwortet werden. Bitte versuchen Sie es später noch einmal. Bei wiederholten Problemen wenden Sie sich bitte an das Bundeszentralamt für Steuern - Dienstsitz Saarlouis.`;
-        }
-
-        if (code === "217") {
-          resultMessage =
-            "Bei der Verarbeitung der Daten aus dem angefragten EU-Mitgliedstaat ist ein Fehler aufgetreten. Ihre Anfrage kann deshalb nicht bearbeitet werden.";
+        if (validFrom) {
+          if (validTo) {
+            errorMessage = getErrorMessageByErrorCode(code, validFrom, validTo);
+          } else {
+            errorMessage = getErrorMessageByErrorCode(code, validFrom);
+          }
+        } else {
+          errorMessage = getErrorMessageByErrorCode(code);
         }
 
         resolve({
           ustId,
           code,
-          resultMessage,
+          errorMessage,
         });
       });
   });

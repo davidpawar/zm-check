@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1.2.0",
+    "toastify-js": "^1.12.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.2.2",
+    "@types/toastify-js": "^1.11.1",
     "@types/xlsx": "^0.0.36",
     "typescript": "^4.8.2",
     "vite": "^4.0.0"

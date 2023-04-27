@@ -1,3 +1,5 @@
+@import "toastify-js/src/toastify.css";
+
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -55,6 +57,12 @@ h1 {
 
 .ts-zm-input {
   display: none;
+}
+
+.ts-ust-progress-ctn {
+  display: flex;
+  justify-content: center;
+  padding: 50px 0;
 }
 
 .ts-list-with-errors {

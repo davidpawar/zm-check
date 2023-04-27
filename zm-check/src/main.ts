@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { Client, getClient, ResponseType } from "@tauri-apps/api/http";
 import { desktopDir } from "@tauri-apps/api/path";
 import { getErrorMessageByErrorCode } from "./error-handler/error-handler";
+import Toastify from "toastify-js";
 
 let client: Client;
 
@@ -13,6 +14,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.querySelector("#file-input")?.addEventListener("change", (event) => {
     event.stopPropagation();
     event.preventDefault();
+
+    Toastify({
+      text: "Analyse gestartet.",
+      duration: 3000,
+      close: true,
+      stopOnFocus: true,
+    }).showToast();
 
     // Sometimes event can be null, catch that case.
     if (!event) {
@@ -59,14 +67,20 @@ window.addEventListener("DOMContentLoaded", async () => {
       const listOfUstChunks = [];
 
       // Set the size of the chunkList aka. how many parallel request are made.
-      const chunkSize = 8;
+      const chunkSize = 16;
 
       // Create the chunks.
       for (let i = 0; i < allUstIds.length; i += chunkSize) {
         listOfUstChunks.push(allUstIds.slice(i, i + chunkSize));
       }
 
-      for (const ustChunk of listOfUstChunks) {
+      for (
+        let chunkIterator = 0;
+        chunkIterator < listOfUstChunks.length;
+        chunkIterator++
+      ) {
+        const ustChunk = listOfUstChunks[chunkIterator];
+
         // Create http promise for each entry in current chunk.
         const promises = ustChunk.map((ustId) => {
           return checkUstId(ustId);
@@ -75,28 +89,59 @@ window.addEventListener("DOMContentLoaded", async () => {
         // Wait for all promises to fullfill. This will avoid spamming the endpoint.
         const responseOfPromises = await Promise.all(promises);
 
+        // We want to render the response of the API into the view. Therefore we need a node where to render into.
+        const renderTarget = document.querySelector(
+          ".ts-list-with-errors-table"
+        );
+
+        // Fetch that element to show it once we find an error.
+        const tableWarpperElement = document.querySelector(
+          ".ts-list-with-errors"
+        );
+
+        // Fetch that element to show progress of zm checks.
+        const progressCtn = document.querySelector(".ts-ust-progress-ctn");
+
         // Goals:
         // Goal 1: We want to render each error result into the view.
         // Goal 2: Update the given excel file and add a new column and
         responseOfPromises.forEach((singleResult) => {
-          // We want to render the response of the API into the view. Therefore we need a node where to render into.
-          const renderTarget = document.querySelector(
-            ".ts-list-with-errors-table"
-          );
-
-          const tableWarpperElement = document.querySelector(
-            ".ts-list-with-errors"
-          );
-
-          for (let i = 0; i < sheetAsJSON.length; i++) {
+          for (
+            let responseIndex = 0;
+            responseIndex < sheetAsJSON.length;
+            responseIndex++
+          ) {
             // Run through the sheet and when we find the current singleResult then we can render it in the view and add a column in the row.
             if (
-              sheetAsJSON[i]["Zeilenbeschriftungen"] +
-                sheetAsJSON[i]["USt-IdNr."] ===
+              sheetAsJSON[responseIndex]["Zeilenbeschriftungen"] +
+                sheetAsJSON[responseIndex]["USt-IdNr."] ===
               singleResult.ustId
             ) {
-              if (i === 0) {
+              if (responseIndex === 0) {
                 tableWarpperElement?.classList.remove("ts-hidden");
+              }
+
+              // Reset HTML to overwrite previous text.
+              if (progressCtn) {
+                progressCtn.innerHTML = "";
+              }
+
+              // Calculate progress.
+              const progressElementString = `<div class="">${
+                responseIndex + 1
+              } von ${allUstIds.length} geladen. (${(
+                ((responseIndex + 1) / allUstIds.length) *
+                100
+              ).toFixed(2)}%)</div>`;
+
+              // Little "hack" to create valid HTML nodes with help of template tag.
+              const progressTemplate = document.createElement("template");
+              progressTemplate.innerHTML = progressElementString;
+
+              if (progressTemplate.content.firstElementChild) {
+                progressCtn?.appendChild(
+                  progressTemplate.content.firstElementChild
+                );
               }
 
               // We only need the error cases in the view.
@@ -104,8 +149,8 @@ window.addEventListener("DOMContentLoaded", async () => {
                 const htmlElementString = `
                 <tr>
                   <td>${
-                    sheetAsJSON[i]["Zeilenbeschriftungen"] +
-                    sheetAsJSON[i]["USt-IdNr."]
+                    sheetAsJSON[responseIndex]["Zeilenbeschriftungen"] +
+                    sheetAsJSON[responseIndex]["USt-IdNr."]
                   }</td>
                   <td>${singleResult.errorMessage}
                   </td>
@@ -120,7 +165,7 @@ window.addEventListener("DOMContentLoaded", async () => {
               }
 
               // Update the row with a new column.
-              Object.assign(sheetAsJSON[i], {
+              Object.assign(sheetAsJSON[responseIndex], {
                 Gultigkeit: singleResult.errorMessage,
               });
               break;
@@ -147,10 +192,20 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       writeBinaryFile(desktopPath + "zm-geprueft.xlsx", binaryData)
         .then(() => {
-          console.log("File saved successfully!");
+          Toastify({
+            text: "ZM Ergebnis wurde auf dem Desktop abgelegt.",
+            duration: 3000,
+            close: true,
+            stopOnFocus: true,
+          }).showToast();
         })
         .catch((error) => {
-          console.error("Error saving file:", error);
+          Toastify({
+            text: "ZM Ergebnis konnte nicht gespeichert werden.",
+            duration: 3000,
+            close: true,
+            stopOnFocus: true,
+          }).showToast();
         });
     };
   });
@@ -176,8 +231,8 @@ async function checkUstId(ustId: string): Promise<Record<string, string>> {
 
         const groupedValues = xmlDoc.querySelectorAll("string");
 
+        // Hardcoded for now, because there is no convenient way to access data.
         const code = groupedValues[3].textContent as string;
-
         const validFrom = groupedValues[23].textContent;
         const validTo = groupedValues[25].textContent;
 

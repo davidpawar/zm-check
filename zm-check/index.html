@@ -1,56 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/style.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZM TS Test</title>
-    <script type="module" src="/src/main.ts" defer></script>
-    <style>
-      .logo.vite:hover {
-        filter: drop-shadow(0 0 2em #747bff);
-      }
 
-      .logo.typescript:hover {
-        filter: drop-shadow(0 0 2em #2d79c7);
-      }
-    </style>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZM TS Test</title>
+  <script type="module" src="/src/main.ts" defer></script>
+  <style>
 
-  <body>
-    <div class="container">
-      <h1>Welcome to Tauri!</h1>
+  </style>
+</head>
 
-      <div class="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
-      </div>
+<body>
 
-      <p>Click on the Tauri logo to learn more about the framework</p>
+  <div class="ts-header">
+    <img src="src/assets/trusted-logo.png" class="ts-header-logo" />
+  </div>
 
-      <div class="row">
-        <div>
-          <input id="greet-input" placeholder="Enter a name..." />
-          <button id="greet-button" type="button">Greet</button>
-        </div>
-      </div>
+  <h1>ZM-Check - USt-Prüfer</h1>
 
-      <p id="greet-msg"></p>
-    </div>
-  </body>
+  <label class="ts-zm-input-label" for="file-input">Liste analysieren.</label>
+  <input class="ts-zm-input" type="file" id="file-input">
+
+  <div class="ts-ust-progress-ctn"></div>
+
+  <div class="ts-list-with-errors ts-hidden">
+
+    <div class="ts-list-with-errors-title">Fehlerhafte USt-Ids:</div>
+
+    <table class="ts-list-with-errors-table">
+      <tr>
+        <th>USt-IdNr:</th>
+        <th>Fehlermeldung</th>
+      </tr>
+    </table>
+
+
+  </div>
+
+
+</body>
+
 </html>

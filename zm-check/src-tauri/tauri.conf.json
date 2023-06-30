@@ -16,6 +16,19 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "path": {
+        "all": true
+      },
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": ["https://evatr.bff-online.de/*"]
+      },
+      "fs": {
+        "readFile": true,
+        "writeFile": true,
+        "scope": ["**"]
       }
     },
     "bundle": {
@@ -60,10 +73,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
+        "height": 1000,
         "resizable": true,
         "title": "zm-check",
-        "width": 800
+        "width": 1600
       }
     ]
   }

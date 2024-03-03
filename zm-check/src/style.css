@@ -96,3 +96,12 @@ h1 {
 .ts-hidden {
   display: none;
 }
+
+.ts-event-log-details {
+  margin: 20px auto;
+  width: 80%;
+}
+
+.ts-event-log-ctn {
+  padding: 10px 40px;
+}

@@ -7,13 +7,17 @@ import { getErrorMessageByErrorCode } from "./error-handler/error-handler";
 import Toastify from "toastify-js";
 
 let client: Client;
+let eventLogCtn: HTMLDivElement | null;
 
 window.addEventListener("DOMContentLoaded", async () => {
   client = await getClient();
+  eventLogCtn = document.querySelector(".ts-event-log-ctn");
 
   document.querySelector("#file-input")?.addEventListener("change", (event) => {
     event.stopPropagation();
     event.preventDefault();
+
+    resetEventLog();
 
     Toastify({
       text: "Analyse gestartet.",
@@ -24,6 +28,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     // Sometimes event can be null, catch that case.
     if (!event) {
+      addToEventLog("Change from fileupload event is falsy :-(");
       return;
     }
 
@@ -32,6 +37,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     // Sometimes the uploadedFileList can be null, catch that case.
     if (!uploadedFileList) {
+      addToEventLog("uploadedFileList is falsy.");
       return;
     }
 
@@ -42,111 +48,119 @@ window.addEventListener("DOMContentLoaded", async () => {
     const reader = new FileReader();
     reader.readAsArrayBuffer(file);
     reader.onload = async (fileReaderEvent) => {
-      // Will contain a list of all UstIds from the excel source file.
-      let allUstIds: Array<string> = [];
+      try {
+        // Will contain a list of all UstIds from the excel source file.
+        let allUstIds: Array<string> = [];
 
-      // For now we ignore the typing issue. I don´t want to create custom types just to shut down the compiler.
-      // @ts-ignore
-      const data = new Uint8Array(fileReaderEvent.target.result);
+        // For now we ignore the typing issue. I don´t want to create custom types just to shut down the compiler.
+        // @ts-ignore
+        const data = new Uint8Array(fileReaderEvent.target.result);
 
-      // Step 1: Read the file as array, as we created the data as Uint8Array
-      const workbook = XLSX.read(data, { type: "array" });
+        // Step 1: Read the file as array, as we created the data as Uint8Array
+        const workbook = XLSX.read(data, { type: "array" });
+        addToEventLog("Workbook was read.");
 
-      // Step 2: Sheet as JSON is easier to use, so we convert it.
-      const sheetAsJSON = XLSX.utils.sheet_to_json<any>(
-        workbook.Sheets[workbook.SheetNames[0]]
-      );
+        // Step 2: Sheet as JSON is easier to use, so we convert it.
+        const sheetAsJSON = XLSX.utils.sheet_to_json<any>(
+          workbook.Sheets[workbook.SheetNames[0]]
+        );
+        addToEventLog("sheetAsJSON was created.");
 
-      // Based on the column names of the excel we can access the json
-      allUstIds = Object.values(sheetAsJSON).map((rowData: any) => {
-        return rowData["Zeilenbeschriftungen"] + rowData["USt-IdNr."];
-      });
-
-      // In order to improve performance and not overwhelm the server with too many requests
-      // the UStChecks will be processed in chunks.
-      const listOfUstChunks = [];
-
-      // Set the size of the chunkList aka. how many parallel request are made.
-      const chunkSize = 16;
-
-      // Create the chunks.
-      for (let i = 0; i < allUstIds.length; i += chunkSize) {
-        listOfUstChunks.push(allUstIds.slice(i, i + chunkSize));
-      }
-
-      for (
-        let chunkIterator = 0;
-        chunkIterator < listOfUstChunks.length;
-        chunkIterator++
-      ) {
-        const ustChunk = listOfUstChunks[chunkIterator];
-
-        // Create http promise for each entry in current chunk.
-        const promises = ustChunk.map((ustId) => {
-          return checkUstId(ustId);
+        // Based on the column names of the excel we can access the json
+        allUstIds = Object.values(sheetAsJSON).map((rowData: any) => {
+          return rowData["Zeilenbeschriftungen"] + rowData["USt-IdNr."];
         });
+        addToEventLog("allUstIds were extracted.");
 
-        // Wait for all promises to fullfill. This will avoid spamming the endpoint.
-        const responseOfPromises = await Promise.all(promises);
+        // In order to improve performance and not overwhelm the server with too many requests
+        // the UStChecks will be processed in chunks.
+        const listOfUstChunks = [];
 
-        // We want to render the response of the API into the view. Therefore we need a node where to render into.
-        const renderTarget = document.querySelector(
-          ".ts-list-with-errors-table"
+        // Set the size of the chunkList aka. how many parallel request are made.
+        const chunkSize = 16;
+
+        // Create the chunks.
+        for (let i = 0; i < allUstIds.length; i += chunkSize) {
+          listOfUstChunks.push(allUstIds.slice(i, i + chunkSize));
+        }
+
+        addToEventLog(
+          `${allUstIds.length} ustIds were split into ${listOfUstChunks.length} chunks.`
         );
 
-        // Fetch that element to show it once we find an error.
-        const tableWarpperElement = document.querySelector(
-          ".ts-list-with-errors"
-        );
+        for (
+          let chunkIterator = 0;
+          chunkIterator < listOfUstChunks.length;
+          chunkIterator++
+        ) {
+          const ustChunk = listOfUstChunks[chunkIterator];
 
-        // Fetch that element to show progress of zm checks.
-        const progressCtn = document.querySelector(".ts-ust-progress-ctn");
+          // Create http promise for each entry in current chunk.
+          const promises = ustChunk.map((ustId) => {
+            return checkUstId(ustId);
+          });
 
-        // Goals:
-        // Goal 1: We want to render each error result into the view.
-        // Goal 2: Update the given excel file and add a new column and
-        responseOfPromises.forEach((singleResult) => {
-          for (
-            let responseIndex = 0;
-            responseIndex < sheetAsJSON.length;
-            responseIndex++
-          ) {
-            // Run through the sheet and when we find the current singleResult then we can render it in the view and add a column in the row.
-            if (
-              sheetAsJSON[responseIndex]["Zeilenbeschriftungen"] +
-                sheetAsJSON[responseIndex]["USt-IdNr."] ===
-              singleResult.ustId
+          // Wait for all promises to fullfill. This will avoid spamming the endpoint.
+          const responseOfPromises = await Promise.all(promises);
+
+          // We want to render the response of the API into the view. Therefore we need a node where to render into.
+          const renderTarget = document.querySelector(
+            ".ts-list-with-errors-table"
+          );
+
+          // Fetch that element to show it once we find an error.
+          const tableWarpperElement = document.querySelector(
+            ".ts-list-with-errors"
+          );
+
+          // Fetch that element to show progress of zm checks.
+          const progressCtn = document.querySelector(".ts-ust-progress-ctn");
+
+          // Goals:
+          // Goal 1: We want to render each error result into the view.
+          // Goal 2: Update the given excel file and add a new column and
+          responseOfPromises.forEach((singleResult) => {
+            for (
+              let responseIndex = 0;
+              responseIndex < sheetAsJSON.length;
+              responseIndex++
             ) {
-              if (responseIndex === 0) {
-                tableWarpperElement?.classList.remove("ts-hidden");
-              }
+              // Run through the sheet and when we find the current singleResult then we can render it in the view and add a column in the row.
+              if (
+                sheetAsJSON[responseIndex]["Zeilenbeschriftungen"] +
+                  sheetAsJSON[responseIndex]["USt-IdNr."] ===
+                singleResult.ustId
+              ) {
+                if (responseIndex === 0) {
+                  tableWarpperElement?.classList.remove("ts-hidden");
+                }
 
-              // Reset HTML to overwrite previous text.
-              if (progressCtn) {
-                progressCtn.innerHTML = "";
-              }
+                // Reset HTML to overwrite previous text.
+                if (progressCtn) {
+                  progressCtn.innerHTML = "";
+                }
 
-              // Calculate progress.
-              const progressElementString = `<div class="">${
-                responseIndex + 1
-              } von ${allUstIds.length} geladen. (${(
-                ((responseIndex + 1) / allUstIds.length) *
-                100
-              ).toFixed(2)}%)</div>`;
+                // Calculate progress.
+                const progressElementString = `<div class="">${
+                  responseIndex + 1
+                } von ${allUstIds.length} geladen. (${(
+                  ((responseIndex + 1) / allUstIds.length) *
+                  100
+                ).toFixed(2)}%)</div>`;
 
-              // Little "hack" to create valid HTML nodes with help of template tag.
-              const progressTemplate = document.createElement("template");
-              progressTemplate.innerHTML = progressElementString;
+                // Little "hack" to create valid HTML nodes with help of template tag.
+                const progressTemplate = document.createElement("template");
+                progressTemplate.innerHTML = progressElementString;
 
-              if (progressTemplate.content.firstElementChild) {
-                progressCtn?.appendChild(
-                  progressTemplate.content.firstElementChild
-                );
-              }
+                if (progressTemplate.content.firstElementChild) {
+                  progressCtn?.appendChild(
+                    progressTemplate.content.firstElementChild
+                  );
+                }
 
-              // We only need the error cases in the view.
-              if (singleResult.code !== "200") {
-                const htmlElementString = `
+                // We only need the error cases in the view.
+                if (singleResult.code !== "200") {
+                  const htmlElementString = `
                 <tr>
                   <td>${
                     sheetAsJSON[responseIndex]["Zeilenbeschriftungen"] +
@@ -156,57 +170,72 @@ window.addEventListener("DOMContentLoaded", async () => {
                   </td>
                 </tr>`;
 
-                const template = document.createElement("template");
-                template.innerHTML = htmlElementString;
+                  const template = document.createElement("template");
+                  template.innerHTML = htmlElementString;
 
-                if (template.content.firstElementChild) {
-                  renderTarget?.appendChild(template.content.firstElementChild);
+                  if (template.content.firstElementChild) {
+                    renderTarget?.appendChild(
+                      template.content.firstElementChild
+                    );
+                  }
                 }
+
+                // Update the row with a new column.
+                Object.assign(sheetAsJSON[responseIndex], {
+                  Gultigkeit: singleResult.errorMessage,
+                });
+                break;
               }
-
-              // Update the row with a new column.
-              Object.assign(sheetAsJSON[responseIndex], {
-                Gultigkeit: singleResult.errorMessage,
-              });
-              break;
             }
-          }
+          });
+        }
+
+        const newSheet = XLSX.utils.json_to_sheet(sheetAsJSON);
+        addToEventLog("newSheet was created.");
+
+        const workbook2 = XLSX.utils.book_new();
+        addToEventLog("workbook2 was created.");
+
+        XLSX.utils.book_append_sheet(workbook2, newSheet, "ZM geprueft");
+        addToEventLog("newSheet was appended to workbook2");
+
+        const buffer = XLSX.write(workbook2, {
+          bookType: "xlsx",
+          type: "array",
         });
+        addToEventLog("XLXS was written.");
+
+        const binaryData = new Uint8Array(buffer);
+
+        // Get location of desktop. We want to write the new excel file there.
+        // Its easy to find for users.
+        const desktopPath = await desktopDir();
+        addToEventLog("Will write new file to: " + desktopPath);
+
+        writeBinaryFile(desktopPath + "zm-geprueft.xlsx", binaryData)
+          .then(() => {
+            Toastify({
+              text: "ZM Ergebnis wurde auf dem Desktop abgelegt.",
+              duration: 3000,
+              close: true,
+              stopOnFocus: true,
+            }).showToast();
+          })
+          .catch((error) => {
+            Toastify({
+              text: "ZM Ergebnis konnte nicht gespeichert werden.",
+              duration: 3000,
+              close: true,
+              stopOnFocus: true,
+            }).showToast();
+          });
+      } catch (error) {
+        if (error instanceof Error) {
+          addToEventLog(error.message);
+        } else {
+          addToEventLog("Error, aber Error war nicht instanceOf Error.");
+        }
       }
-
-      const newSheet = XLSX.utils.json_to_sheet(sheetAsJSON);
-
-      const workbook2 = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook2, newSheet, "ZM geprueft");
-
-      const buffer = XLSX.write(workbook2, {
-        bookType: "xlsx",
-        type: "array",
-      });
-
-      const binaryData = new Uint8Array(buffer);
-
-      // Get location of desktop. We want to write the new excel file there.
-      // Its easy to find for users.
-      const desktopPath = await desktopDir();
-
-      writeBinaryFile(desktopPath + "zm-geprueft.xlsx", binaryData)
-        .then(() => {
-          Toastify({
-            text: "ZM Ergebnis wurde auf dem Desktop abgelegt.",
-            duration: 3000,
-            close: true,
-            stopOnFocus: true,
-          }).showToast();
-        })
-        .catch((error) => {
-          Toastify({
-            text: "ZM Ergebnis konnte nicht gespeichert werden.",
-            duration: 3000,
-            close: true,
-            stopOnFocus: true,
-          }).showToast();
-        });
     };
   });
 });
@@ -218,7 +247,7 @@ window.addEventListener("DOMContentLoaded", async () => {
  */
 async function checkUstId(ustId: string): Promise<Record<string, string>> {
   return new Promise((resolve) => {
-    console.log("make call for: " + ustId);
+    addToEventLog("make call for: " + ustId);
     client
       .get(
         `https://evatr.bff-online.de/evatrRPC?UstId_1=DE328147354&UstId_2=${ustId}&Firmenname=&Ort=&PLZ=&Strasse=`,
@@ -255,4 +284,30 @@ async function checkUstId(ustId: string): Promise<Record<string, string>> {
         });
       });
   });
+}
+
+/**
+ * Logs a message into an event log at the bottom of the page.
+ * @param message The message to be shown.
+ */
+function addToEventLog(message: string) {
+  if (!eventLogCtn) {
+    return;
+  }
+
+  const logElement = document.createElement("div");
+  logElement.innerHTML = message;
+
+  eventLogCtn.appendChild(logElement);
+}
+
+/**
+ * Empties the current event log.
+ */
+function resetEventLog() {
+  if (!eventLogCtn) {
+    return;
+  }
+
+  eventLogCtn.innerHTML = "";
 }

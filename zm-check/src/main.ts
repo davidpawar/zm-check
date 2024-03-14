@@ -221,7 +221,7 @@ window.addEventListener("DOMContentLoaded", async () => {
               stopOnFocus: true,
             }).showToast();
           })
-          .catch((error) => {
+          .catch(() => {
             Toastify({
               text: "ZM Ergebnis konnte nicht gespeichert werden.",
               duration: 3000,

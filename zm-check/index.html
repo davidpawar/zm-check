@@ -19,9 +19,14 @@
   <main>
     <h1>ZM-Check – USt-Prüfer</h1>
 
-    <!-- Label fungiert als klickbarer Upload-Button; Input bleibt versteckt -->
-    <label class="ts-zm-input-label" for="file-input">Liste analysieren</label>
-    <input class="ts-zm-input" type="file" id="file-input" accept=".xlsx,.xls,.ods" />
+    <!-- Drop-Zone: Klick öffnet Dateiauswahl, Drag-and-Drop legt Excel direkt ab -->
+    <div class="ts-drop-zone" id="drop-zone">
+      <label class="ts-zm-input-label" for="file-input">
+        <span class="ts-zm-input-title">Liste analysieren</span>
+        <span class="ts-zm-input-hint">oder Excel-Datei hier ablegen</span>
+      </label>
+      <input class="ts-zm-input" type="file" id="file-input" accept=".xlsx,.xls,.ods" />
+    </div>
 
     <div class="ts-ust-progress-ctn" aria-live="polite"></div>
 
@@ -38,10 +43,13 @@
       </table>
     </section>
 
-    <details class="ts-event-log-details">
-      <summary>Event-Log</summary>
-      <div class="ts-event-log-ctn"></div>
-    </details>
+    <section class="ts-event-log" id="event-log" aria-label="Protokoll">
+      <div class="ts-event-log-header">
+        <h2 class="ts-event-log-title">Protokoll</h2>
+        <p class="ts-event-log-summary">Bereit – warte auf Excel-Datei …</p>
+      </div>
+      <div class="ts-event-log-list" role="log" aria-live="polite"></div>
+    </section>
   </main>
 
 </body>

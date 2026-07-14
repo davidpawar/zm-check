@@ -53,7 +53,8 @@
         "resizable": true,
         "title": "zm-check",
         "width": 1600,
-        "useHttpsScheme": true
+        "useHttpsScheme": true,
+        "dragDropEnabled": false
       }
     ],
     "security": {

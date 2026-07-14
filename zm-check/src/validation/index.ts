@@ -1,4 +1,5 @@
 import {
+  ALLOWED_FILE_EXTENSIONS,
   ALLOWED_FILE_TYPES,
   CONFIG,
   REQUIRED_EXCEL_COLUMNS,
@@ -7,13 +8,19 @@ import type { UstIdRow, ValidationResult } from "../types";
 
 /**
  * Prüft, ob die hochgeladene Datei ein unterstütztes Excel-Format hat.
+ * Prüft MIME-Typ und Dateiendung – letzteres wichtig für Drag-and-Drop unter macOS.
  *
  * @param file - Vom Browser bereitgestellte Datei
  */
 export function validateFileType(file: File): boolean {
-  return ALLOWED_FILE_TYPES.includes(
+  const mimeMatch = ALLOWED_FILE_TYPES.includes(
     file.type as (typeof ALLOWED_FILE_TYPES)[number]
   );
+
+  if (mimeMatch) return true;
+
+  const fileName = file.name.toLowerCase();
+  return ALLOWED_FILE_EXTENSIONS.some((ext) => fileName.endsWith(ext));
 }
 
 /**

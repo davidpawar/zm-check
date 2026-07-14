@@ -45,6 +45,9 @@ export const REQUIRED_EXCEL_COLUMNS = [
   "USt-IdNr.",
 ] as const;
 
+/** Dateiendungen für Fallback-Validierung (Drag-and-Drop liefert oft keinen MIME-Typ) */
+export const ALLOWED_FILE_EXTENSIONS = [".xlsx", ".xls", ".ods"] as const;
+
 /** MIME-Typen, die als Excel-Datei akzeptiert werden */
 export const ALLOWED_FILE_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx

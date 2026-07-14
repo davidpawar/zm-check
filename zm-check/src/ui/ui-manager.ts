@@ -1,14 +1,17 @@
 import { showToast } from "./toast";
+import { EventLog } from "./event-log";
 import { safeQuerySelector } from "../utils";
+import type { EventLogEntryOptions, RunSummaryStats } from "../types/event-log";
 
 /** CSS-Selektoren aller UI-Elemente – zentral, damit HTML-Änderungen leicht auffindbar sind */
 const SELECTORS = {
+  dropZone: "#drop-zone",
   fileInput: "#file-input",
   fileLabel: ".ts-zm-input-label",
   progressContainer: ".ts-ust-progress-ctn",
   tableWrapper: ".ts-list-with-errors",
   errorTableBody: ".ts-list-with-errors-table tbody",
-  eventLog: ".ts-event-log-ctn",
+  eventLog: "#event-log",
 } as const;
 
 /**
@@ -16,18 +19,20 @@ const SELECTORS = {
  * Geschäftslogik (UstChecker) spricht nur mit dieser Klasse – nicht direkt mit dem DOM.
  */
 export class UIManager {
+  private eventLog = new EventLog();
+  private dropZone: HTMLDivElement | null = null;
   private fileInput: HTMLInputElement | null = null;
   private fileLabel: HTMLLabelElement | null = null;
   private progressContainer: HTMLDivElement | null = null;
   private tableWrapper: HTMLDivElement | null = null;
   private renderTarget: HTMLTableSectionElement | null = null;
-  private eventLogContainer: HTMLDivElement | null = null;
 
   /**
    * Bindet DOM-Referenzen beim App-Start.
    * Muss aufgerufen werden, bevor andere Methoden genutzt werden.
    */
   initialize(): void {
+    this.dropZone = safeQuerySelector<HTMLDivElement>(SELECTORS.dropZone);
     this.fileInput = safeQuerySelector<HTMLInputElement>(SELECTORS.fileInput);
     this.fileLabel = safeQuerySelector<HTMLLabelElement>(SELECTORS.fileLabel);
     this.progressContainer = safeQuerySelector<HTMLDivElement>(
@@ -39,9 +44,27 @@ export class UIManager {
     this.renderTarget = safeQuerySelector<HTMLTableSectionElement>(
       SELECTORS.errorTableBody
     );
-    this.eventLogContainer = safeQuerySelector<HTMLDivElement>(
-      SELECTORS.eventLog
-    );
+
+    const eventLogContainer = safeQuerySelector<HTMLElement>(SELECTORS.eventLog);
+    if (eventLogContainer) {
+      this.eventLog.initialize(eventLogContainer);
+    }
+  }
+
+  /**
+   * Gibt die Drop-Zone zurück – wird für Drag-and-Drop-Events benötigt.
+   */
+  getDropZone(): HTMLDivElement | null {
+    return this.dropZone;
+  }
+
+  /**
+   * Visuelles Feedback, wenn eine Datei über die Drop-Zone gezogen wird.
+   *
+   * @param isActive - true solange die Datei über der Zone schwebt
+   */
+  setDragOverState(isActive: boolean): void {
+    this.dropZone?.classList.toggle("is-drag-over", isActive);
   }
 
   /**
@@ -55,6 +78,7 @@ export class UIManager {
 
     this.fileInput.disabled = isLoading;
     this.fileLabel?.classList.toggle("is-loading", isLoading);
+    this.dropZone?.classList.toggle("is-loading", isLoading);
 
     if (isLoading) {
       showToast("Verarbeitung läuft...");
@@ -72,7 +96,6 @@ export class UIManager {
 
     const percentage = ((current / total) * 100).toFixed(2);
 
-    // innerHTML statt einzelner DOM-Updates – bei jedem Chunk akzeptabel
     this.progressContainer.innerHTML = `
       <div class="progress-text">${current} von ${total} geladen. (${percentage}%)</div>
       <div class="progress-bar">
@@ -106,26 +129,36 @@ export class UIManager {
   }
 
   /**
-   * Schreibt einen Eintrag ins aufklappbare Event-Log (Debugging für Anwender).
+   * Schreibt einen strukturierten Eintrag ins Protokoll.
    *
-   * @param message - Beschreibung des aktuellen Schritts
+   * @param message - Hauptmeldung
+   * @param options - Level und optionale Detailzeile
    */
-  addToEventLog(message: string): void {
-    if (!this.eventLogContainer) return;
-
-    const logElement = document.createElement("div");
-    logElement.className = "log-entry";
-    logElement.textContent = `[${new Date().toLocaleTimeString("de-DE")}] ${message}`;
-    this.eventLogContainer.appendChild(logElement);
-
-    // Neueste Einträge sollen sichtbar bleiben
-    this.eventLogContainer.scrollTop = this.eventLogContainer.scrollHeight;
+  addToEventLog(message: string, options: EventLogEntryOptions = {}): void {
+    this.eventLog.append(message, options);
   }
 
-  /** Leert das Event-Log vor einem neuen Upload. */
+  /**
+   * Aktualisiert die Statuszeile über dem Protokoll.
+   *
+   * @param text - Kurzstatus
+   */
+  setEventLogSummary(text: string): void {
+    this.eventLog.setSummary(text);
+  }
+
+  /**
+   * Schreibt die Abschluss-Zusammenfassung eines Prüflaufs.
+   *
+   * @param stats - Aggregierte Lauf-Statistik
+   */
+  logRunSummary(stats: RunSummaryStats): void {
+    this.eventLog.appendRunSummary(stats);
+  }
+
+  /** Leert das Protokoll vor einem neuen Upload. */
   resetEventLog(): void {
-    if (!this.eventLogContainer) return;
-    this.eventLogContainer.innerHTML = "";
+    this.eventLog.reset();
   }
 
   /** Setzt die Fortschrittsanzeige zurück. */
@@ -142,7 +175,6 @@ export class UIManager {
     if (!this.renderTarget) return;
 
     this.renderTarget.innerHTML = "";
-
     this.tableWrapper?.classList.add("ts-hidden");
   }
 

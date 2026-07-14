@@ -4,7 +4,7 @@ Tauri-Desktop-Anwendung zur Batch-Prüfung von USt-IdNrn. über die BFF-Online A
 
 ## Features
 
-- Excel-Upload (.xlsx, .xls, .ods)
+- Excel-Upload (.xlsx, .xls, .ods) per Klick oder Drag-and-Drop
 - Parallele API-Prüfung in konfigurierbaren Chunks
 - Live-Fortschritt und Fehlertabelle
 - Ergebnis-Excel auf dem Desktop (`zm-geprueft.xlsx`)
@@ -60,9 +60,36 @@ npm run build
 npm run tauri build
 ```
 
+## Beispiel-Excel
+
+Eine Vorlage mit der erwarteten Struktur liegt unter [`examples/zm-beispiel.xlsx`](examples/zm-beispiel.xlsx). Die Datei kann direkt in der App hochgeladen werden, um den Ablauf zu testen.
+
+### Erwartete Spalten (Eingabe)
+
+| Spalte | Pflicht | Beschreibung |
+|--------|---------|--------------|
+| `Zeilenbeschriftungen` | Ja | Länderpräfix, z. B. `DE` |
+| `USt-IdNr.` | Ja | Numerischer Teil der USt-IdNr., z. B. `123456789` |
+
+Beide Spalten werden zusammengefügt: `DE` + `123456789` → `DE123456789` (wird an BFF-Online geprüft).
+
+**Beispielinhalt:**
+
+| Zeilenbeschriftungen | USt-IdNr. |
+|----------------------|-----------|
+| DE | 123456789 |
+| DE | 234567890 |
+| DE | 345678901 |
+
+> Die USt-IdNrn. in der Beispieldatei sind **fiktiv** – nur zur Demonstration der Struktur.
+
+### Ausgabe nach der Prüfung
+
+Die App ergänzt eine Spalte **`Gultigkeit`** mit der API-Antwort (z. B. „Die angefragte USt-IdNr. ist gültig.“) und speichert die Datei als `zm-geprueft.xlsx` auf dem Desktop.
+
 ## Verwendung
 
-1. Excel mit Spalten `Zeilenbeschriftungen` und `USt-IdNr.` hochladen
+1. Excel mit Spalten `Zeilenbeschriftungen` und `USt-IdNr.` hochladen – per Klick, Drag-and-Drop auf die Upload-Zone, oder [`examples/zm-beispiel.xlsx`](examples/zm-beispiel.xlsx) als Vorlage nutzen
 2. Automatische Prüfung aller USt-Ids
 3. Ergebnis mit Spalte `Gultigkeit` wird auf dem Desktop gespeichert
 

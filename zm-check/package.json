@@ -1,7 +1,7 @@
 {
   "name": "zm-check",
   "private": true,
-  "version": "0.0.2",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,15 +11,17 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.5.3",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-http": "^2.5.9",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "toastify-js": "^1.12.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.5.10",
-    "@types/toastify-js": "^1.12.3",
-    "@types/xlsx": "^0.0.36",
-    "typescript": "^5.3.3",
-    "vite": "^5.1.4"
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/toastify-js": "^1.12.4",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1"
   }
 }

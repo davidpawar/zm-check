@@ -21,7 +21,7 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",
     "@types/toastify-js": "^1.12.4",
-    "typescript": "^5.9.3",
-    "vite": "^6.4.1"
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4"
   }
 }
